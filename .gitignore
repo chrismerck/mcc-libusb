@@ -110,3 +110,4 @@ usb-tc.o
 usb-temp.d
 usb-temp.o
 tags
+continuous-log-usb1208HS
