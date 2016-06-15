@@ -67,7 +67,7 @@ int main (int argc, char **argv)
   uint32_t period;
   uint16_t version;
   uint16_t sdataOut[128];   // holds 12 bit unsigned analog output data
-  uint16_t sdataIn[512];    // holds 13 bit unsigned analog input data
+  uint16_t sdataIn[1024];    // holds 13 bit unsigned analog input data
   char serial[9];
   uint8_t range[NCHAN_1208HS];
   uint16_t value;
@@ -203,9 +203,11 @@ int main (int argc, char **argv)
 	printf("Testing USB-1208HS Analog Input Scan.\n");
 	usbAInScanStop_USB1208HS(udev);
 	printf("Input channel [0-7]: ");
-        scanf("%hhd", &channel);
+        //scanf("%hhd", &channel);
+  channel = 0;
 	printf("Gain Range for channel %d: 1 = +/-10V  2 = +/- 5V  3 = +/- 2.5V  4 = 0-10V Single Ended: ", channel);
-	while((ch = getchar()) == '\0' || ch == '\n');
+	//while((ch = getchar()) == '\0' || ch == '\n');
+        ch = '3';
 	switch(ch) {
 	  case '1': gain = BP_10V; break;
   	  case '2': gain = BP_5V; break;
@@ -219,14 +221,21 @@ int main (int argc, char **argv)
 	}
 	usbAInConfig_USB1208HS(udev, mode, range);
         printf("Enter sampling frequency [Hz]: ");
-	scanf("%lf", &frequency);
-	usbAInScanStart_USB1208HS(udev, 512, 0, frequency, (0x1<<channel), 0xff, 0);
-	usbAInScanRead_USB1208HS(udev, 512, 1, sdataIn);
-	for (i = 0; i < 512; i++) {
-	  sdataIn[i] = rint(sdataIn[i]*table_AIN[mode][gain][0] + table_AIN[mode][gain][1]);
-	  printf("Channel %d  Mode = %d  Gain = %d Sample[%d] = %#x Volts = %lf\n", channel,
-		 mode, gain, i, sdataIn[i], volts_USB1208HS(mode, gain, sdataIn[i]));
-	}
+	//scanf("%lf", &frequency);
+       frequency = 512;
+  /* try continuous scan mode */
+	usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0x1<<channel), 0xff, 0);
+  usleep(10000);
+  for (j = 0; j < 10; j++) {
+    usbAInScanRead_USB1208HS(udev, 512, 1, sdataIn);
+    for (i = 0; i < 512; i++) {
+      sdataIn[i] = rint(sdataIn[i]*table_AIN[mode][gain][0] + table_AIN[mode][gain][1]);
+      printf("Channel %d  Mode = %d  Gain = %d Sample[%d] = %#x Volts = %lf\n", channel,
+       mode, gain, i, sdataIn[i], volts_USB1208HS(mode, gain, sdataIn[i]));
+    }
+  }
+	usbAInScanStop_USB1208HS(udev);
+
         break;
       case 'o':
         if (!(usb1208HS_4AO || usb1208HS_2AO)) {
