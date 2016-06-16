@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "pmd.h"
 #include "usb-1208HS.h"
@@ -54,13 +55,17 @@ int main (int argc, char **argv)
   int ret;
 
   int fd;
+  int fd_ts;
   
   uint16_t sdataIn[BLOCKSIZE];    // holds 13 bit unsigned analog input data
   uint8_t range[NCHAN_1208HS];
 
+  struct timespec ts;
+
   udev = NULL;
 
-  ret = libusb_init(NULL);
+  libusb_context * ctx = NULL;
+  ret = libusb_init(&ctx);
   if (ret < 0) {
     perror("usb_device_find_USB_MCC: Failed to initialize libusb");
     exit(1);
@@ -80,6 +85,8 @@ int main (int argc, char **argv)
   }
   (void) usb1208HS_2AO;
   (void) usb1208HS_4AO;
+
+  libusb_set_debug(ctx,LIBUSB_LOG_LEVEL_WARNING);
 
   usbInit_1208HS(udev);
   usbBuildGainTable_USB1208HS(udev, table_AIN);
@@ -101,14 +108,21 @@ int main (int argc, char **argv)
 
   fd = open("data.raw", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
   if (fd < 0) {
-    perror("Error opening file.");
+    perror("Error opening data file.");
     return -1;
   }
+
+  fd_ts = open("timestamps.csv", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+  if (fd_ts < 0) {
+    perror("Error opening ts file.");
+    return -1;
+  }
+
 
 	printf("Testing USB-1208HS Analog Input Scan.\n");
 	usbAInScanStop_USB1208HS(udev);
   channel = 0;
-	printf("Input channel %d",channel);
+	printf("Input channel %d\n",channel);
   ch = '4';
   char * gain_range = "";
 	switch(ch) {
@@ -118,29 +132,39 @@ int main (int argc, char **argv)
 	  case '4': gain = UP_10V; gain_range = "0-10V SE"; break;
 	  default:  gain = BP_10V; gain_range = "+/-10V"; break;
 	}
-	printf("Gain Range for channel %d: %s",channel,gain_range);
+	printf("Gain Range for channel %d: %s\n",channel,gain_range);
 	mode = SINGLE_ENDED;
 	for (i = 0; i < NCHAN_1208HS; i++) {
 	  range[i] = gain;
 	}
 	usbAInConfig_USB1208HS(udev, mode, range);
   frequency = 200000;
-  printf("Sampling frequency: %1.02fHz",frequency);
+  printf("Sampling frequency: %1.02fHz\n",frequency);
 
 	usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0x1<<channel), 0xff, 0);
   usleep(1000);
-  long samples = 0;
+  long long samples = 0;
+  char buf[1000];
   while(1) {
     ret = usbAInScanRead_USB1208HS(udev, BLOCKSIZE, 1, sdataIn);
-    if (ret < 0) continue;
+    if (ret < 0) {
+      printf("Warning: usbAInScanRead returned %d\n",ret);
+      continue;
+    }
+    /* write timestamp to file */
+    clock_gettime(CLOCK_REALTIME,&ts);
+    sprintf(buf,"%lld,%lld.%ld\n",samples,(long long)ts.tv_sec,ts.tv_nsec);
+    write(fd_ts,buf,strlen(buf));
+    /* write data to file */
     write(fd,sdataIn,BLOCKSIZE);
     /*sdataIn[i] = rint(sdataIn[i]*table_AIN[mode][gain][0] + table_AIN[mode][gain][1]);
     volts = volts_USB1208HS(mode, gain, sdataIn[i]);*/
     samples += BLOCKSIZE;
-    printf("Acquired %ld samples.\n",samples);
+    printf("Acquired %lld samples.\n",samples);
   }
 	usbAInScanStop_USB1208HS(udev);
   close(fd);
+  close(fd_ts);
 
   return 0;
 }
