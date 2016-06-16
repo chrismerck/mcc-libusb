@@ -57,7 +57,7 @@ int main (int argc, char **argv)
   int fd;
   int fd_ts;
   
-  uint16_t sdataIn[BLOCKSIZE];    // holds 13 bit unsigned analog input data
+  uint16_t sdataIn[4*BLOCKSIZE];    // holds 13 bit unsigned analog input data
   uint8_t range[NCHAN_1208HS];
 
   struct timespec ts;
@@ -141,7 +141,7 @@ int main (int argc, char **argv)
   frequency = 200000;
   printf("Sampling frequency: %1.02fHz\n",frequency);
 
-	usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0x1<<channel), 0xff, 0);
+	usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0xF<<channel), 0xff, 0);
   usleep(1000);
   long long samples = 0;
   char buf[1000];
