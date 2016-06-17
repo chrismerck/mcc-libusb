@@ -257,27 +257,27 @@ void usbAInScanStart_USB20X(libusb_device_handle *udev, uint32_t count, double f
   libusb_control_transfer(udev, requesttype, AIN_SCAN_START, 0x0, 0x0, (unsigned char *) &AInScan, 12, HS_DELAY);
 }
 
-int usbAInScanRead_USB20X(libusb_device_handle *udev, int nScan, int nChan, uint16_t *data, uint8_t options)
+int usbAInScanRead_USB20X(libusb_device_handle *udev, int nScan, int nChan, int Continuous, uint16_t *data, uint8_t options, unsigned int timeout)
 {
   char value[MAX_PACKET_SIZE];
   int i;
   int ret = -1;
-  int nbytes = nChan*nScan*2;    // number of bytes to read in 64 bit chunks
-  int transferred;
+  int nbytes = nScan*nChan*2;    // number of bytes to read in 64 bit chunks
+  int transferred;               // number of bytes actually transferred
   uint16_t status;
 
-  if (options & IMMEDIATE_TRANSFER_MODE) {
+  if (options & IMMEDIATE_TRANSFER_MODE) {  // data returned after each scan
     for (i = 0; i < nbytes/2; i++) {
-      ret = libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|1, (unsigned char *) &data[i], 2, &transferred, 2000);
+      ret = libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|1, (unsigned char *) &data[i], 2*nChan, &transferred, timeout);
       if (ret < 0) {
 	perror("usbAInScanRead_USB20X: error in usb_bulk_transfer.");
       }
-      if (transferred != 2) {
+      if (transferred != 2*nChan) {
 	fprintf(stderr, "usbAInScanRead_USB20X: number of bytes transferred = %d, nbytes = %d\n", transferred, nbytes);
       }
     }
   } else { 
-    ret = libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|1, (unsigned char *) data, nbytes, &transferred, HS_DELAY);
+    ret = libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|1, (unsigned char *) data, nbytes, &transferred, timeout);
     if (ret < 0) {
       perror("usbAInScanRead_USB20X: error in usb_bulk_transfer.");
     }
@@ -287,13 +287,18 @@ int usbAInScanRead_USB20X(libusb_device_handle *udev, int nScan, int nChan, uint
   }
 
   status = usbStatus_USB20X(udev);
-  // if nbytes is a multiple of wMaxPacketSize the device will send a zero byte packet.
-  if (((nbytes%wMaxPacketSize) == 0) && !(status & AIN_SCAN_RUNNING)) {
-    libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|1, (unsigned char *) value, 2, &ret, 100);
-  }
-
   if ((status & AIN_SCAN_OVERRUN)) {
     printf("Analog AIn scan overrun.\n");
+  }
+
+  if (Continuous) { // continuous mode
+    return nbytes;
+  }
+
+  usbAInScanStop_USB20X(udev);
+  // if nbytes is a multiple of wMaxPacketSize the device will send a zero byte packet.
+  if ((nbytes%wMaxPacketSize) == 0) {
+    libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|1, (unsigned char *) value, 32, &ret, 100);
   }
 
   return nbytes;

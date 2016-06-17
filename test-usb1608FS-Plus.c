@@ -218,8 +218,14 @@ start:
         printf("Hit any key to exit\n");
 	usbAInScanStop_USB1608FS_Plus(udev);
         count = 0;        // for continuous mode
-        channel = 0xff;   // one bit for each channel
-        frequency = 1000.;
+	printf("Enter sampling frequency [Hz]: ");
+	scanf("%lf", &frequency);
+	printf("Enter number of channels [1-8]: ");
+	scanf("%d", &nchan);
+	channels = 0;
+	for (i = 0; i < nchan; i++) {
+	  channels |= (0x1 << i);
+        }
         range = 0;
         for (i = 0; i < 8; i++) {
           ranges[i] = range;
@@ -229,13 +235,13 @@ start:
         usbAInScanConfig_USB1608FS_Plus(udev, ranges);
 	sleep(1);
         i = 0;
-	usbAInScanStart_USB1608FS_Plus(udev, count, frequency, channel, 0);
+	usbAInScanStart_USB1608FS_Plus(udev, count, frequency, channels, 0);
 	flag = fcntl(fileno(stdin), F_GETFL);
 	fcntl(0, F_SETFL, flag | O_NONBLOCK);
         do {
-  	  ret = usbAInScanRead_USB1608FS_Plus(udev, 256, 8, sdataIn,0);
+  	  ret = usbAInScanRead_USB1608FS_Plus(udev, 256, nchan, sdataIn, 0);
           for (scan = 0; scan < 256; scan++) { //for each scan
-	    for (channel = 0; channel < 8; channel++){  // for each channel in a scan
+	    for (channel = 0; channel < nchan; channel++) {  // for each channel in a scan
               dataC[scan][channel] = rint(sdataIn[scan*8+channel]*table_AIN[range][channel][0] + table_AIN[range][channel][1]);
 	    }
 	  }
@@ -264,8 +270,9 @@ start:
         scanf("%lf", &frequency);
         // Build bitmap for the first nchan in channels.
         channels = 0;
-        for (i = 0; i < nchan; i++)
+        for (i = 0; i < nchan; i++) {
 	  channels |= (1 << i);
+	}
         printf ("channels: %02X   count:%d\n", channels, count);
         // Always use BP_10V to make it easy (BP_10V is 0...)
         memset(ranges, 0, sizeof(ranges));

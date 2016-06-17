@@ -47,7 +47,7 @@ int main (int argc, char **argv)
   libusb_device_handle *udev = NULL;
   float table_AIN[NCHAN_USB20X][2];
   struct tm calDate;
-  int ch;
+  int ch, nchan, chan, sample, scan;
   int i;
   uint8_t input;
   int temp;
@@ -59,8 +59,10 @@ int main (int argc, char **argv)
   double frequency;
   int ret;
   uint16_t *sdataIn; // holds 16 bit unsigned analog input data
+  uint16_t dataC[256][8];  // corrected data
   int aOutEnabled = 0;
-
+  int flag;
+  
   udev = NULL;
 
   ret = libusb_init(NULL);
@@ -105,6 +107,7 @@ int main (int argc, char **argv)
     printf("Hit 'd' to test digitial IO\n");
     printf("Hit 'i' to test Analog Input\n");
     printf("Hit 'I' to test Analog Input Scan\n");
+    printf("Hit 'C' to test continuous sampling at 10kHz.\n");
     printf("Hit 'o' to test Analog Output (202/205 only).\n");
     printf("Hit 'r' to reset the device\n");
     printf("Hit 's' to get serial number\n");
@@ -165,8 +168,8 @@ int main (int argc, char **argv)
 	usbAInScanStop_USB20X(udev);
         printf("Enter number of scans: ");
         scanf("%d", &count);
-	printf("Input channel 0-7: ");
-        scanf("%hhd", &channel);
+	printf("Enter number of channels [1-8]: ");
+        scanf("%d", &nchan);
         printf("Enter sampling frequency [Hz]: ");
 	scanf("%lf", &frequency);
 	if (frequency < 100.) {
@@ -174,20 +177,70 @@ int main (int argc, char **argv)
 	} else {
 	  options = 0x0;
 	}
-	if ((sdataIn = malloc(2*count)) == NULL) {
+	// The total number of bytes returned is 2*nchan*count
+	if ((sdataIn = malloc(2*nchan*count)) == NULL) {
 	  perror("Error in malloc");
 	  break;
 	}
+	for (i = 0; i < nchan*count; i++) {
+	  sdataIn[i] = 0xbeef;
+	}
         usbAInScanStop_USB20X(udev);
 	usbAInScanClearFIFO_USB20X(udev);
-	usbAInScanStart_USB20X(udev, count, frequency, (0x1<<channel), options, 0, 0);
-	ret = usbAInScanRead_USB20X(udev, count, 1, sdataIn, options);
-	printf("Number samples read = %d\n", ret/2);
-	for (i = 0; i < count; i++) {
-	  sdataIn[i] = rint(sdataIn[i]*table_AIN[channel][0] + table_AIN[channel][1]);
-	  printf("Channel %d  Sample[%d] = %#x Volts = %lf\n", channel,
-		 i, sdataIn[i], volts_USB20X(sdataIn[i]));
+	channel = 0;
+	// Set one bit for each active channel
+	for (i = 0; i < nchan; i++) {
+	  channel |= (0x1 << i);
 	}
+	usbAInScanStart_USB20X(udev, count, frequency, channel,  options, 0, 0);
+	ret = usbAInScanRead_USB20X(udev, count, nchan, 0, sdataIn, options, 2000);
+	printf("Number samples read = %d\n", ret/2);
+	for (i = 0; i < count; i++) { // scan count
+	  for (chan = 0; chan < nchan; chan++) { // channel count
+	    sample = i*nchan + chan;
+	    sdataIn[sample] = rint(sdataIn[sample]*table_AIN[chan][0] + table_AIN[chan][1]);
+	    printf("Channel %d  Sample[%d] = %#x Volts = %lf\n", chan,
+		   sample, sdataIn[sample], volts_USB20X(sdataIn[sample]));
+	  }
+	}
+	free(sdataIn);
+        break;
+      case 'C':
+	printf("Testing USB-20X Analog Input Scan in Continuous mode 8 channels\n");
+	printf("Hit any key to exit\n");
+	usbAInScanStop_USB20X(udev);
+	count = 128;          // number of scans
+	channel = 0xff;       // all 8 channels
+	frequency = 10000.;   // sample at 10000 Hz.
+	options = 0;
+        usbAInScanStop_USB20X(udev);
+	usbAInScanClearFIFO_USB20X(udev);
+	// The total number of bytes returned is 2*nchan*count
+	if ((sdataIn = malloc(2*8*128)) == NULL) {
+	  perror("Error in malloc");
+	  break;
+	}
+        sleep(1);
+	i = 0;
+	usbAInScanStart_USB20X(udev, 0, frequency, channel, options, 0, 0);
+	flag = fcntl(fileno(stdin), F_GETFL);
+	fcntl(0, F_SETFL, flag | O_NONBLOCK);
+	do {
+	  ret = usbAInScanRead_USB20X(udev, count, 8, 1, sdataIn, options, 2000);
+	  for (scan = 0; scan < count; scan++) { //for each scan 
+	    for (chan = 0; chan < 8; chan++) {  // for each channel in a scan
+	      dataC[scan][chan] = rint(sdataIn[scan*8+chan]*table_AIN[chan][0] + table_AIN[chan][1]);
+	    }
+	  }
+          if (i%10 == 0) {
+            printf("Scan = %d\n", i);
+	  }
+          i++;
+	} while (!isalpha(getchar()));
+	fcntl(fileno(stdin), F_SETFL, flag);
+        usbAInScanStop_USB20X(udev);
+	usbReset_USB20X(udev);
+        sleep(2); // let things settle down.
 	free(sdataIn);
         break;
       case 'o':

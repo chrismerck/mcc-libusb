@@ -29,7 +29,7 @@
 #include "usb-1208HS.h"
 #include "usb-1208HS.rbf"
 
-#define HS_DELAY 1000
+#define HS_DELAY 10000
 
 static int wMaxPacketSize;  // will be the same for all devices of this type so
                             // no need to be reentrant. 
@@ -248,16 +248,16 @@ void usbAInScanStart_USB1208HS(libusb_device_handle *udev, uint32_t count, uint3
     uint32_t retrig_count; // The numer of scans to perform for each trigger in retrigger mode.
     uint32_t pacer_period; // The pacer timer period value. (0 for AI_CLK_IN).
     uint8_t  channels;     // bitmask: the channels to be included in the scan.
-    uint8_t packet_size;   // Number of samples - 1 to transfer at a time.
-    uint8_t options;       /* bit 0:  1 = burst mode
-                           bit 1:  Reserved
-			   bit 2:  Reserved
-                           bit 3:  1 = use trigger
-                           bit 4:  Reserved
-			   bit 5:  1 = debug mode, 0 = normal data
-			   bit 6:  1 = retrigger mode, 0 = normal trigger
-			   bit 7:  Reserved
-			*/
+    uint8_t  packet_size;  // Number of samples - 1 to transfer at a time.
+    uint8_t  options;      /* bit 0:  1 = burst mode
+                              bit 1:  Reserved
+			      bit 2:  Reserved
+                              bit 3:  1 = use trigger
+                              bit 4:  Reserved
+			      bit 5:  1 = debug mode, 0 = normal data
+			      bit 6:  1 = retrigger mode, 0 = normal trigger
+			      bit 7:  Reserved
+			   */
   } AInScan;
   uint8_t requesttype = (HOST_TO_DEVICE | VENDOR_TYPE | DEVICE_RECIPIENT);
 
@@ -297,7 +297,7 @@ int usbAInScanRead_USB1208HS(libusb_device_handle *udev, int nScan, int nChan, u
 
   status = usbStatus_USB1208HS(udev);
   // if nbytes is a multiple of wMaxPacketSize the device will send a zero byte packet.
-  if ((nbytes%wMaxPacketSize) == 0 && (status & AIN_SCAN_DONE)) {
+  if (((nbytes%wMaxPacketSize) == 0) && (status & AIN_SCAN_DONE)) {
     libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|1, (unsigned char *) value, 2, &ret, 100);
   }
 

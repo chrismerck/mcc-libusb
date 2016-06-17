@@ -13,7 +13,7 @@
 #############################################################################
 
 #  Current Version of the driver
-VERSION=1.12
+VERSION=1.14
 
 SRCS =    pmd.c  nist.c   usb-1608G.c usb-20X.c usb-1208FS-Plus.c usb-1608FS-Plus.c usb-2020.c  \
           usb-ctr.c usb-2600.c usb-2408.c usb-2416.c usb-1608HS.c usb-1208HS.c usb-2001-tc.c    \
@@ -42,8 +42,7 @@ TARGETS=libmccusb.$(SHARED_EXT) libmccusb.a test-usb1608G test-usb20X test-usb50
         test-usb2001tc test-usb1024LS test-usb1208LS test-usb1208FS test-usb1408FS test-usb1608FS test-usb7202 \
         test-usb7204 test-usb-tc test-usb-dio24 test-usb-dio96H test-usb5201 test-usb5203 test-usb-temp        \
         test-usb-ssr test-usb-erb test-usb-pdiso8 test-usb1616FS test-usb3100 test-usb4300 test-usb-tc-ai      \
-        test-usb-temp-ai test-usb-dio32HS test-usb-tc32 test-bth1208LS \
-				continuous-log-usb1208HS
+        test-usb-temp-ai test-usb-dio32HS test-usb-tc32 test-bth1208LS
 ID=MCCLIBUSB
 DIST_NAME=$(ID).$(VERSION).tgz
 DIST_FILES={README,Makefile,nist.c,pmd.c,pmd.h,usb-1608G.h,usb-1608G.rbf,usb-1608G.c,test-usb1608G.c,usb-20X.h,usb-20X.c,test-usb20X.c,usb-500.h,test-usb500.c,usb-1608FS-Plus.h,usb-1608FS-Plus.c,test-usb1608FS-Plus.c,usb-2020.h,usb-2020.rbf,usb-2020.c,test-usb2020.c,usb-1208FS-Plus.h,usb-1208FS-Plus.c,test-usb1208FS-Plus.c,usb-ctr.h,usb-ctr.rbf,usb-ctr.c,test-usb-ctr.c,usb-2600.h,usb-26xx.rbf,usb-2600.c,test-usb2600.c,usb-2416.h,usb-2416.c,test-usb2416.c,usb-1608HS.h,usb-1608HS.c,test-usb1608HS.c,usb-1208HS.rbf,usb-1208HS.h,usb-1208HS.c,test-usb1208HS.c,usb-2001-tc.h,usb-2001-tc.c,test-usb2001tc.c,usb-2408.h,usb-2408.c,test-usb2408.c,usb-2001-tc.h,usb-2001-tc.c,test-usb2001tc.c,usb-1024LS.h,usb-1024LS.c,test-usb1024LS.c,usb-1208LS.h,usb-1208LS.c,test-usb1208LS.c,usb-1608FS.h,usb-1608FS.c,test-usb1608FS.c,usb-7202.h,usb-7202.c,test-usb7202.c,usb-tc.h,usb-tc.c,test-usb-tc.c,usb-dio24.h,usb-dio24.c,test-usb-dio24.c,usb-dio96H.h,usb-dio96H.c,test-usb-dio96H.c,usb-5200.h,usb-5200.c,test-usb5201.c,test-usb5203.c,usb-temp.h,usb-temp.c,test-usb-temp.c,usb-7204.h,usb-7204.c,test-usb7204.c,usb-1208FS.h,usb-1208FS.c,test-usb1208FS.c,usb-ssr.h,usb-ssr.c,test-usb-ssr.c,usb-erb.h,usb-erb.c,test-usb-erb.c,usb-pdiso8.h,usb-pdiso8.c,test-usb-pdiso8.c,usb-1408FS.h,usb-1408FS.c,test-usb1408FS.c,usb-1616FS.h,usb-1616FS.c,test-usb1616FS.c,usb-3100.h,usb-3100.c,test-usb3100.c,usb-4303.h,usb-4303.c,test-usb4300.c,usb-tc-ai.h,usb-tc-ai.c,test-usb-tc-ai.c,test-usb-temp-ai.c,usb-dio32HS.h,usb-dio32HS.c,usb-dio32HS.rbf,test-usb-dio32HS.c,usb-tc-32.h,usb-tc-32.c,test-usb-tc32.c,bth-1208LS.h,bth-1208LS.c,test-bth1208LS.c}
@@ -85,11 +84,10 @@ test-usb1208FS-Plus:	test-usb1208FS-Plus.c usb-1208FS-Plus.o libmccusb.a
 test-usb1608FS-Plus:	test-usb1608FS-Plus.c usb-1608FS-Plus.o libmccusb.a 
 	$(CC) -g -Wall -I. -o $@ $@.c -L. -lmccusb  -lm -L/usr/local/lib -lhidapi-libusb -lusb-1.0
 
-
-test-usb1208HS:	test-usb1208HS.c usb-1208HS.o libmccusb.a 
+continuous-log-usb1208HS:	continuous-log-usb1208HS.c usb-1208HS.o libmccusb.a 
 	$(CC) -g -Wall -I. -o $@ $@.c -L. -lmccusb  -lm -L/usr/local/lib -lhidapi-libusb -lusb-1.0 
 
-continuous-log-usb1208HS:	continuous-log-usb1208HS.c usb-1208HS.o libmccusb.a 
+test-usb1208HS:	test-usb1208HS.c usb-1208HS.o libmccusb.a 
 	$(CC) -g -Wall -I. -o $@ $@.c -L. -lmccusb  -lm -L/usr/local/lib -lhidapi-libusb -lusb-1.0 
 
 test-usb1608HS:	test-usb1608HS.c usb-1608HS.o libmccusb.a 

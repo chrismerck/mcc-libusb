@@ -295,7 +295,7 @@ void usbAInScanStart_USB1608G(libusb_device_handle *udev, uint32_t count, uint32
     uint32_t retrig_count; // The numer of scans to perform for each trigger in retrigger mode.
     uint32_t pacer_period; // The pacer timer period value. (0 for AI_CLK_IN).
     uint8_t packet_size;   // Number of samples - 1 to transfer at a time.
-    uint8_t options;       /* bit 0:  1 = burst mode
+    uint8_t options;    /* bit 0:  1 = burst mode
                            bit 1:  Reserved
 	                   bit 2:  Reserved
                            bit 3:  1 = use trigger
@@ -321,7 +321,7 @@ void usbAInScanStart_USB1608G(libusb_device_handle *udev, uint32_t count, uint32
   for (i = 0; i < NCHAN_1608G; i++) {
     if (scan_list[i] & LAST_CHANNEL) break;
   }
-  
+
   if (count == 0) {
     AInScan.packet_size = wMaxPacketSize/2 - 1;
   } else if (((i+1)*count) < wMaxPacketSize/2) {
@@ -409,6 +409,11 @@ void usbAInConfig_USB1608G(libusb_device_handle *udev, ScanList scanList[NCHAN_1
     }
     
     scan_list[i] |= (scanList[i].range << 3);
+
+    /*
+    printf("Scan List[%d]  mode = %#x   channel = %d  range = %#x  raw = %#x\n",
+	   i, scanList[i].mode, scanList[i].channel, scanList[i].range, scan_list[i]);
+    */
 
     if (scanList[i].mode & LAST_CHANNEL) {
       scan_list[i] |= LAST_CHANNEL;

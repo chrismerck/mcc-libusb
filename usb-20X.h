@@ -120,7 +120,7 @@ void usbDLatchW_USB20X(libusb_device_handle *udev, uint8_t value);
 uint16_t usbAIn_USB20X(libusb_device_handle *udev, uint8_t channel);
 void usbAOut_USB20X(libusb_device_handle *udev, uint8_t channel, uint16_t value);
 void usbAInScanStart_USB20X(libusb_device_handle *udev, uint32_t count, double frequency, uint8_t channels, uint8_t options, uint8_t trigger_source, uint8_t trigger_mode);
-int usbAInScanRead_USB20X(libusb_device_handle *udev, int nScan, int nChan, uint16_t *data, uint8_t options);
+int usbAInScanRead_USB20X(libusb_device_handle *udev, int nScan, int nChan, int Continuous, uint16_t *data, uint8_t options, unsigned int timeout);
 void usbAInScanStop_USB20X(libusb_device_handle *udev);
 void usbAInScanClearFIFO_USB20X(libusb_device_handle *udev);
 void usbAInBulkFlush_USB20X(libusb_device_handle *udev, uint8_t count);

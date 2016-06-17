@@ -35,7 +35,7 @@
 static int wMaxPacketSize;  // will be the same for all devices of this type so
                             // no need to be reentrant. 
 
-#define BLOCKSIZE (128*1024)
+#define BLOCKSIZE (256)
 
 int main (int argc, char **argv)
 {
@@ -138,10 +138,11 @@ int main (int argc, char **argv)
 	  range[i] = gain;
 	}
 	usbAInConfig_USB1208HS(udev, mode, range);
-  frequency = 200000;
+  frequency = 1000;
   printf("Sampling frequency: %1.02fHz\n",frequency);
 
-	usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0xF<<channel), 0xff, 0);
+  uint8_t option = BURST_MODE;
+	usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0xF<<channel), 0xff, option);
   usleep(1000);
   long long samples = 0;
   char buf[1000];

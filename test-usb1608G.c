@@ -129,7 +129,7 @@ start:
     printf("----------------\n");
     printf("Hit 'b' to blink\n");
     printf("Hit 'c' to test counter\n");
-    printf("Hit 'C' to test continuous sampling at 1000 Hz.\n");
+    //    printf("Hit 'C' to test continuous sampling at 1000 Hz.\n");
     printf("Hit 'd' to test digitial IO\n");
     printf("Hit 'i' to test Analog Input\n");
     printf("Hit 'I' to test Analog Input Scan\n");
@@ -307,7 +307,7 @@ start:
         printf("Hit any key to exit\n");
 	usbAInScanStop_USB1608G(udev);
         nScans = 0;       // for continuous mode
-        nchan = 8;        // 4 channels
+        nchan = 1;        // 8 channels
         frequency = 1000.;
 	gain = BP_10V;
         for (i = 0; i < nchan; i++) {
@@ -322,12 +322,12 @@ start:
 	sdataIn = malloc(2*8*1024);
 	sleep(1);
         i = 0;
-        usbAInScanStart_USB1608G(udev, nScans, 0, frequency, 0x1);
+        usbAInScanStart_USB1608G(udev, nScans, 0, frequency, 0x0);
 	flag = fcntl(fileno(stdin), F_GETFL);
 	fcntl(0, F_SETFL, flag | O_NONBLOCK);
         do {
 	  // ret = usbAInScanRead_USB1608G(udev, 256, nchan, sdataIn);
-	  ret = libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|6, (unsigned char *) sdataIn, 256, &transferred, 2000);
+	  ret = libusb_bulk_transfer(udev, LIBUSB_ENDPOINT_IN|6, (unsigned char *) sdataIn, 256, &transferred, 200000);
 	  if (ret < 0) {
 	    perror("test-usb1608G: error in libusb_bulk_transfer.");
 	  }
@@ -338,6 +338,7 @@ start:
 	  }
           if (i%10 == 0) {
             printf("Scan = %d\n", i);
+	    break;
 	  }
           i++;
 	} while (!isalpha(getchar()));
