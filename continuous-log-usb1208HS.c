@@ -35,7 +35,7 @@
 static int wMaxPacketSize;  // will be the same for all devices of this type so
                             // no need to be reentrant. 
 
-#define BLOCKSIZE (256)
+#define BLOCKSIZE (1024)
 
 int main (int argc, char **argv)
 {
@@ -138,7 +138,7 @@ int main (int argc, char **argv)
 	  range[i] = gain;
 	}
 	usbAInConfig_USB1208HS(udev, mode, range);
-  frequency = 1000;
+  frequency = 200000;
   printf("Sampling frequency: %1.02fHz\n",frequency);
 
   uint8_t option = BURST_MODE;
@@ -147,7 +147,7 @@ int main (int argc, char **argv)
   long long samples = 0;
   char buf[1000];
   while(1) {
-    ret = usbAInScanRead_USB1208HS(udev, BLOCKSIZE, 1, sdataIn);
+    ret = usbAInScanRead_USB1208HS(udev, BLOCKSIZE, 4, sdataIn);
     if (ret < 0) {
       printf("Warning: usbAInScanRead returned %d\n",ret);
       continue;
@@ -157,7 +157,10 @@ int main (int argc, char **argv)
     sprintf(buf,"%lld,%lld.%ld\n",samples,(long long)ts.tv_sec,ts.tv_nsec);
     write(fd_ts,buf,strlen(buf));
     /* write data to file */
-    write(fd,sdataIn,BLOCKSIZE);
+    int wr = write(fd,sdataIn,sizeof(sdataIn));
+    if (wr != sizeof(sdataIn)) {
+      printf("Only wrote %d bytes\n",wr);
+    }
     /*sdataIn[i] = rint(sdataIn[i]*table_AIN[mode][gain][0] + table_AIN[mode][gain][1]);
     volts = volts_USB1208HS(mode, gain, sdataIn[i]);*/
     samples += BLOCKSIZE;
