@@ -61,6 +61,7 @@ int main (int argc, char **argv)
   uint8_t range[NCHAN_1208HS];
 
   struct timespec ts;
+  struct timespec ts_old;
 
   udev = NULL;
 
@@ -141,20 +142,35 @@ int main (int argc, char **argv)
   frequency = 200000;
   printf("Sampling frequency: %1.02fHz\n",frequency);
 
+  clock_gettime(CLOCK_REALTIME,&ts_old);
+
   uint8_t option = BURST_MODE;
 	usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0xF<<channel), 0xff, option);
   usleep(1000);
   long long samples = 0;
   char buf[1000];
+  int skipcnt = 0;
+  long long backlog;
+  double elapsed_s;
+  long long expected_samples;
   while(1) {
     ret = usbAInScanRead_USB1208HS(udev, BLOCKSIZE, 4, sdataIn);
+    printf("ret %d ",ret);
     if (ret < 0) {
       printf("Warning: usbAInScanRead returned %d\n",ret);
       continue;
     }
+    if (ret == 1) {
+      // overrun ---> reset
+      printf("Restarting sampling...\n");
+      usbAInScanStop_USB1208HS(udev);
+      usbAInConfig_USB1208HS(udev, mode, range);
+      usbAInScanStart_USB1208HS(udev, 0, 0, frequency, (0xF<<channel), 0xff, option);
+      continue;
+    }
     /* write timestamp to file */
     clock_gettime(CLOCK_REALTIME,&ts);
-    sprintf(buf,"%lld,%lld.%ld\n",samples,(long long)ts.tv_sec,ts.tv_nsec);
+    sprintf(buf,"%lld,%lld.%09ld\n",samples,(long long)ts.tv_sec,ts.tv_nsec);
     write(fd_ts,buf,strlen(buf));
     /* write data to file */
     int wr = write(fd,sdataIn,sizeof(sdataIn));
@@ -164,7 +180,17 @@ int main (int argc, char **argv)
     /*sdataIn[i] = rint(sdataIn[i]*table_AIN[mode][gain][0] + table_AIN[mode][gain][1]);
     volts = volts_USB1208HS(mode, gain, sdataIn[i]);*/
     samples += BLOCKSIZE;
-    printf("Acquired %lld samples.\n",samples);
+    if (++skipcnt>0) {
+      printf("Acquired %lld samples\n",samples);
+      elapsed_s = (double)((long long) ts.tv_sec-ts_old.tv_sec) + \
+          (ts.tv_nsec-ts_old.tv_nsec)/1000000000.0;
+      expected_samples = floor(elapsed_s*frequency);
+      backlog = expected_samples - samples;
+      printf("backlog = %lld\n",
+          backlog);
+      skipcnt=0;
+    }
+    /*ts_old.tv_sec = ts.tv_sec; ts_old.tv_nsec = ts.tv_nsec; */
   }
 	usbAInScanStop_USB1208HS(udev);
   close(fd);

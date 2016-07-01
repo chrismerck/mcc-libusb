@@ -302,7 +302,8 @@ int usbAInScanRead_USB1208HS(libusb_device_handle *udev, int nScan, int nChan, u
   }
 
   if ((status & AIN_SCAN_OVERRUN)) {
-    printf("Analog In scan overrun.\n");
+    printf("Analog In scan overrun!\n");
+    return 1;
   }
   return ret;
 }
