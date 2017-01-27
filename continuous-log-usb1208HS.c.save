@@ -174,10 +174,17 @@ int main (int argc, char **argv)
     /*sdataIn[i] = rint(sdataIn[i]*table_AIN[mode][gain][0] + table_AIN[mode][gain][1]);
     volts = volts_USB1208HS(mode, gain, sdataIn[i]);*/
     samples += BLOCKSIZE;
+    if (++skipcnt>0) {
+      elapsed_s = (double)((long long) ts.tv_sec-ts_old.tv_sec) + \
+          (ts.tv_nsec-ts_old.tv_nsec)/1000000000.0;
+      expected_samples = floor(elapsed_s*frequency);
+      backlog = expected_samples - samples;
+      skipcnt=0;
+    }
     /*ts_old.tv_sec = ts.tv_sec; ts_old.tv_nsec = ts.tv_nsec; */
   }
 	usbAInScanStop_USB1208HS(udev);
-  close(fd);
+  lose(fd);
   close(fd_ts);
 
   return 0;
